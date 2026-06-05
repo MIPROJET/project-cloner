@@ -215,7 +215,11 @@ export const AdminTendersManager = () => {
       }).eq("id", batch?.id);
 
       setReport({ inserted, skipped, total: rows.length });
-      toast({ title: "Import terminé", description: `${inserted} ajoutés, ${skipped} doublons ou lignes invalides ignorés.` });
+      toast({
+        title: "Import terminé",
+        description: `${inserted} appel(s) d'offre ajouté(s) — ${skipped} ligne(s) ignorée(s) (doublons exacts titre+date+pays ou ligne invalide).`,
+      });
+
       reload();
     } catch (e: any) {
       toast({ title: "Erreur d'import", description: e.message, variant: "destructive" });
@@ -281,7 +285,13 @@ export const AdminTendersManager = () => {
                 <Card className="bg-muted/40">
                   <CardContent className="p-4">
                     <p className="font-semibold mb-1">Rapport d'import</p>
-                    <p className="text-sm">✅ {report.inserted} ajoutés · ⏭️ {report.skipped} doublons ignorés · 📦 {report.total} lignes traitées</p>
+                    <p className="text-sm">✅ {report.inserted} ajoutés · ⏭️ {report.skipped} ignorés (doublons exacts titre+date+pays ou lignes invalides) · 📦 {report.total} lignes traitées</p>
+                    {report.skipped > 0 && report.skipped >= report.total - 30 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Le fichier contient beaucoup de doublons : la déduplication garde uniquement la combinaison unique (titre + date limite + pays). Seuls les appels d'offres réellement nouveaux ont été ajoutés.
+                      </p>
+                    )}
+
                   </CardContent>
                 </Card>
               )}

@@ -33,8 +33,10 @@ export const getTenderTitle = (
 ) => {
   if (translated?.title) return translated.title;
   if (language === "en") return tender.title_en || tender.notice_title;
-  if (language === "fr") return tender.title_fr || tender.notice_title;
-  return tender.title_fr || tender.title_en || tender.notice_title;
+  if (language === "fr" && tender.title_fr) return tender.title_fr;
+  // For any other language without a translation yet, fall back to the source
+  // title — the async translation will replace it once it arrives.
+  return tender.notice_title;
 };
 
 export const getTenderSummary = (
@@ -44,21 +46,24 @@ export const getTenderSummary = (
 ) => {
   if (translated?.summary) return translated.summary;
   if (language === "en") return tender.summary_en || tender.summary;
-  if (language === "fr") return tender.summary_fr || tender.summary;
-  return tender.summary_fr || tender.summary_en || tender.summary;
+  if (language === "fr" && tender.summary_fr) return tender.summary_fr;
+  return tender.summary;
 };
+
 
 export const localTenderSummary = (title: string, country: string, sector: string) =>
   `Appel d'offres au ${country || "pays concerné"} dans le secteur ${sector || "Autres"}. Objet : ${title.slice(0, 180)}.`;
 
 export const translateTenderBatch = async (tenders: TenderTranslationRow[], language: Language) => {
   const result: Record<string, TenderTranslation> = {};
-  if (!tenders.length || language === "en") return result;
+  if (!tenders.length) return result;
 
   const missing: TenderTranslationRow[] = [];
   for (const tender of tenders) {
-    const nativeTitle = language === "fr" ? tender.title_fr : null;
-    const nativeSummary = language === "fr" ? tender.summary_fr : null;
+    // Only treat as "already in target language" when we have a stored
+    // translation column for that language — never fall back across languages.
+    const nativeTitle = language === "fr" ? tender.title_fr : language === "en" ? tender.title_en : null;
+    const nativeSummary = language === "fr" ? tender.summary_fr : language === "en" ? tender.summary_en : null;
     if (nativeTitle && (nativeSummary || !tender.summary)) continue;
 
     try {
@@ -70,6 +75,7 @@ export const translateTenderBatch = async (tenders: TenderTranslationRow[], lang
     } catch {}
     missing.push(tender);
   }
+
 
   if (!missing.length) return result;
 
