@@ -215,7 +215,11 @@ export const AdminTendersManager = () => {
       }).eq("id", batch?.id);
 
       setReport({ inserted, skipped, total: rows.length });
-      toast({ title: "Import terminé", description: `${inserted} ajoutés, ${skipped} doublons ou lignes invalides ignorés.` });
+      toast({
+        title: "Import terminé",
+        description: `${inserted} appel(s) d'offre ajouté(s) — ${skipped} ligne(s) ignorée(s) (doublons exacts titre+date+pays ou ligne invalide).`,
+      });
+
       reload();
     } catch (e: any) {
       toast({ title: "Erreur d'import", description: e.message, variant: "destructive" });
