@@ -14,7 +14,7 @@ export const ISO_COUNTRY_NAMES: Record<string, string> = {
 const aliases: Record<string, string> = {
   benin: "BJ", coteivoire: "CI", ivorycoast: "CI", cotedivoire: "CI", rdcongo: "CD", drcongo: "CD", congodemocraticrepublic: "CD", democraticrepublicofcongo: "CD", congo: "CG",
   southafrica: "ZA", afriquedusud: "ZA", capeverde: "CV", capvert: "CV", centralafricanrepublic: "CF", centrafrique: "CF", equatorialguinea: "GQ", guineeequatoriale: "GQ", guineabissau: "GW",
-  sao tome: "ST", saotome: "ST", saotomeandprincipe: "ST", mauritania: "MR", mauritanie: "MR", nigeria: "NG", niger: "NE", unitedstates: "US", usa: "US", unitedkingdom: "GB", uk: "GB",
+  saotome: "ST", saotomeandprincipe: "ST", mauritania: "MR", mauritanie: "MR", nigeria: "NG", niger: "NE", unitedstates: "US", usa: "US", unitedkingdom: "GB", uk: "GB",
 };
 
 const clean = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
