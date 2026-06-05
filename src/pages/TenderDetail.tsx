@@ -89,8 +89,9 @@ const TenderDetail = () => {
           <Card>
             <CardContent className="p-6 md:p-10">
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="text-3xl">{flagEmoji(tender.country_code)}</span>
+                <CountryFlag code={tender.country_code} size={26} />
                 <Badge variant="secondary" className="text-sm">{tender.country_name || tender.country_code}</Badge>
+
                 {tender.sector && (
                   <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">
                     <Briefcase className="h-3 w-3 mr-1" />{tender.sector}
