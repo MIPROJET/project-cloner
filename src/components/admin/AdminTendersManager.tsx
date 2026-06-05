@@ -297,10 +297,40 @@ export const AdminTendersManager = () => {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><FileSpreadsheet className="h-5 w-5" /> Importer un CSV</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("skip")}
+                  className={`text-left rounded-lg border p-3 transition ${mode === "skip" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                >
+                  <p className="font-semibold text-sm">Ignorer les doublons</p>
+                  <p className="text-xs text-muted-foreground">N'ajoute que les nouveaux (titre + date + pays).</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("replace")}
+                  className={`text-left rounded-lg border p-3 transition ${mode === "replace" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                >
+                  <p className="font-semibold text-sm">Mettre à jour les existants</p>
+                  <p className="text-xs text-muted-foreground">Réécrit les doublons avec les nouvelles infos (recommandé).</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("wipe")}
+                  className={`text-left rounded-lg border p-3 transition ${mode === "wipe" ? "border-destructive bg-destructive/5" : "border-border hover:border-destructive/50"}`}
+                >
+                  <p className="font-semibold text-sm text-destructive">Vider puis réimporter</p>
+                  <p className="text-xs text-muted-foreground">Supprime tous les appels d'offres existants avant d'importer.</p>
+                </button>
+              </div>
+
               <div
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
                 onDragOver={(e) => e.preventDefault()}
-                onClick={() => fileRef.current?.click()}
+                onClick={() => {
+                  if (mode === "wipe" && !confirm("Vider TOUS les appels d'offres existants avant import ?")) return;
+                  fileRef.current?.click();
+                }}
                 className="border-2 border-dashed border-border rounded-xl p-10 text-center cursor-pointer hover:border-primary transition"
               >
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -318,17 +348,12 @@ export const AdminTendersManager = () => {
                 <Card className="bg-muted/40">
                   <CardContent className="p-4">
                     <p className="font-semibold mb-1">Rapport d'import</p>
-                    <p className="text-sm">✅ {report.inserted} ajoutés · ⏭️ {report.skipped} ignorés (doublons exacts titre+date+pays ou lignes invalides) · 📦 {report.total} lignes traitées</p>
-                    {report.skipped > 0 && report.skipped >= report.total - 30 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Le fichier contient beaucoup de doublons : la déduplication garde uniquement la combinaison unique (titre + date limite + pays). Seuls les appels d'offres réellement nouveaux ont été ajoutés.
-                      </p>
-                    )}
-
+                    <p className="text-sm">✅ {report.inserted} ajoutés · 🔄 {report.updated} mis à jour · ⏭️ {report.skipped} ignorés · 📦 {report.total} lignes traitées</p>
                   </CardContent>
                 </Card>
               )}
             </CardContent>
+
           </Card>
         </TabsContent>
 
