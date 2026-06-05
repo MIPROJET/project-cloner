@@ -33,8 +33,10 @@ export const getTenderTitle = (
 ) => {
   if (translated?.title) return translated.title;
   if (language === "en") return tender.title_en || tender.notice_title;
-  if (language === "fr") return tender.title_fr || tender.notice_title;
-  return tender.title_fr || tender.title_en || tender.notice_title;
+  if (language === "fr" && tender.title_fr) return tender.title_fr;
+  // For any other language without a translation yet, fall back to the source
+  // title — the async translation will replace it once it arrives.
+  return tender.notice_title;
 };
 
 export const getTenderSummary = (
@@ -44,9 +46,10 @@ export const getTenderSummary = (
 ) => {
   if (translated?.summary) return translated.summary;
   if (language === "en") return tender.summary_en || tender.summary;
-  if (language === "fr") return tender.summary_fr || tender.summary;
-  return tender.summary_fr || tender.summary_en || tender.summary;
+  if (language === "fr" && tender.summary_fr) return tender.summary_fr;
+  return tender.summary;
 };
+
 
 export const localTenderSummary = (title: string, country: string, sector: string) =>
   `Appel d'offres au ${country || "pays concerné"} dans le secteur ${sector || "Autres"}. Objet : ${title.slice(0, 180)}.`;
