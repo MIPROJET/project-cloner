@@ -102,7 +102,7 @@ export const AdminTendersManager = () => {
   const [q, setQ] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [report, setReport] = useState<{ inserted: number; updated: number; skipped: number; total: number } | null>(null);
+  const [report, setReport] = useState<{ inserted: number; updated: number; skipped: number; total: number; unique: number } | null>(null);
   const [mode, setMode] = useState<"skip" | "replace" | "wipe">("replace");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -225,7 +225,7 @@ export const AdminTendersManager = () => {
         duplicate_rows: skipped,
       }).eq("id", batch?.id);
 
-      setReport({ inserted, updated, skipped, total: rows.length });
+      setReport({ inserted, updated, skipped, total: rows.length, unique: fileSeen.size });
       toast({
         title: "Import terminé",
         description: `${inserted} ajouté(s) · ${updated} mis à jour · ${skipped} ignoré(s).`,
@@ -328,7 +328,7 @@ export const AdminTendersManager = () => {
                 <Card className="bg-muted/40">
                   <CardContent className="p-4">
                     <p className="font-semibold mb-1">Rapport d'import</p>
-                    <p className="text-sm">✅ {report.inserted} ajoutés · 🔄 {report.updated} mis à jour · ⏭️ {report.skipped} ignorés · 📦 {report.total} lignes traitées</p>
+                    <p className="text-sm">✅ {report.inserted} ajoutés · 🔄 {report.updated} mis à jour · 🎯 {report.unique} appels réels détectés · ⏭️ {report.skipped} ignorés · 📦 {report.total} lignes traitées</p>
                   </CardContent>
                 </Card>
               )}
