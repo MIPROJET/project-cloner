@@ -87,8 +87,8 @@ const parseDeadline = (s: string) => {
 };
 
 const norm = (s: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-const dateKey = (s: string) => (s || "").slice(0, 10);
-const tenderKey = (title: string, deadline: string | null, country: string) => `${norm(title)}|${dateKey(deadline || "")}|${country || ""}`;
+// DB has UNIQUE(notice_title, notice_deadline) — dedup MUST match that exact pair.
+const tenderKey = (title: string, deadline: string | null, _country: string) => `${norm(title)}|${deadline || ""}`;
 const pick = (row: string[], headers: string[], names: string[], fallback: number) => {
   const idx = names.map((n) => headers.indexOf(n)).find((i) => i >= 0);
   return row[idx ?? fallback] || "";
