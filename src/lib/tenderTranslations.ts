@@ -56,12 +56,14 @@ export const localTenderSummary = (title: string, country: string, sector: strin
 
 export const translateTenderBatch = async (tenders: TenderTranslationRow[], language: Language) => {
   const result: Record<string, TenderTranslation> = {};
-  if (!tenders.length || language === "en") return result;
+  if (!tenders.length) return result;
 
   const missing: TenderTranslationRow[] = [];
   for (const tender of tenders) {
-    const nativeTitle = language === "fr" ? tender.title_fr : null;
-    const nativeSummary = language === "fr" ? tender.summary_fr : null;
+    // Only treat as "already in target language" when we have a stored
+    // translation column for that language — never fall back across languages.
+    const nativeTitle = language === "fr" ? tender.title_fr : language === "en" ? tender.title_en : null;
+    const nativeSummary = language === "fr" ? tender.summary_fr : language === "en" ? tender.summary_en : null;
     if (nativeTitle && (nativeSummary || !tender.summary)) continue;
 
     try {
@@ -73,6 +75,7 @@ export const translateTenderBatch = async (tenders: TenderTranslationRow[], lang
     } catch {}
     missing.push(tender);
   }
+
 
   if (!missing.length) return result;
 
