@@ -156,6 +156,17 @@ const Tenders = () => {
                 <SelectContent className="max-h-72">
                   <SelectItem value="all">Tous les pays</SelectItem>
                   {countries.map(([iso, name]) => (
+                    <SelectItem key={iso} value={iso}>
+                      <span className="inline-flex items-center gap-2">
+                        <CountryFlag code={iso} size={14} /> {name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+                  <SelectItem value="all">Tous les pays</SelectItem>
+                  {countries.map(([iso, name]) => (
                     <SelectItem key={iso} value={iso}>{flagEmoji(iso)} {name}</SelectItem>
                   ))}
                 </SelectContent>
