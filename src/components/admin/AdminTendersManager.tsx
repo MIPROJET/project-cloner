@@ -87,8 +87,8 @@ const parseDeadline = (s: string) => {
 };
 
 const norm = (s: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-const dateKey = (s: string) => (s || "").slice(0, 10);
-const tenderKey = (title: string, deadline: string | null, country: string) => `${norm(title)}|${dateKey(deadline || "")}|${country || ""}`;
+// DB has UNIQUE(notice_title, notice_deadline) — dedup MUST match that exact pair.
+const tenderKey = (title: string, deadline: string | null, _country: string) => `${norm(title)}|${deadline || ""}`;
 const pick = (row: string[], headers: string[], names: string[], fallback: number) => {
   const idx = names.map((n) => headers.indexOf(n)).find((i) => i >= 0);
   return row[idx ?? fallback] || "";
@@ -196,16 +196,33 @@ export const AdminTendersManager = () => {
         }
 
         if (toInsert.length) {
-          const { data: ins, error } = await (supabase as any).from("tenders").insert(toInsert).select("id,notice_title,notice_deadline,country_code");
+          // Use upsert on the DB unique key (notice_title, notice_deadline) so collisions
+          // never abort the whole chunk. In "replace" mode we update existing rows;
+          // in "skip" mode we ignore duplicates.
+          const ignoreDuplicates = mode === "skip";
+          const { data: ins, error } = await (supabase as any)
+            .from("tenders")
+            .upsert(toInsert, { onConflict: "notice_title,notice_deadline", ignoreDuplicates })
+            .select("id,notice_title,notice_deadline,country_code");
           if (error) {
-            console.error("[tenders import insert]", error);
-            toast({ title: "Erreur SQL (insert)", description: error.message, variant: "destructive" });
-            skipped += toInsert.length;
+            console.error("[tenders import upsert chunk]", error);
+            // Fallback : retry row-by-row so a single bad row doesn't kill the chunk
+            for (const row of toInsert) {
+              const { data: one, error: e1 } = await (supabase as any)
+                .from("tenders")
+                .upsert(row, { onConflict: "notice_title,notice_deadline", ignoreDuplicates })
+                .select("id,notice_title,notice_deadline,country_code")
+                .maybeSingle();
+              if (e1) { console.error("[tenders import upsert row]", e1, row.notice_title); skipped++; }
+              else if (one) { inserted++; existingMap.set(tenderKey(one.notice_title, one.notice_deadline, one.country_code || ""), one.id); }
+              else skipped++;
+            }
           } else {
             inserted += ins?.length || 0;
             (ins || []).forEach((t: any) => existingMap.set(tenderKey(t.notice_title, t.notice_deadline, t.country_code || ""), t.id));
           }
         }
+
 
         for (const u of toUpdate) {
           const { error } = await (supabase as any).from("tenders").update({ ...u.row, updated_at: new Date().toISOString() }).eq("id", u.id);
