@@ -165,12 +165,7 @@ const Tenders = () => {
                 </SelectContent>
               </Select>
 
-                  <SelectItem value="all">Tous les pays</SelectItem>
-                  {countries.map(([iso, name]) => (
-                    <SelectItem key={iso} value={iso}>{flagEmoji(iso)} {name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
             </div>
             <div className="md:col-span-2">
               <Select value={sector} onValueChange={setSector}>
