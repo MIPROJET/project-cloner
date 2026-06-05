@@ -11,23 +11,11 @@ import { Upload, FileSpreadsheet, Archive, RotateCcw, Trash2, ExternalLink, Sear
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { countryNameFromCode, normalizeCountryCode } from "@/lib/countries";
+import { CountryFlag } from "@/components/tenders/CountryFlag";
 
 type Tender = any;
 type Batch = any;
-
-const ISO_COUNTRY: Record<string, string> = {
-  KE: "Kenya", TN: "Tunisie", RW: "Rwanda", ZA: "Afrique du Sud", CM: "Cameroun",
-  MA: "Maroc", ET: "Éthiopie", MG: "Madagascar", ZW: "Zimbabwe", TZ: "Tanzanie",
-  GA: "Gabon", CI: "Côte d'Ivoire", SN: "Sénégal", BJ: "Bénin", BF: "Burkina Faso",
-  NG: "Nigéria", GH: "Ghana", ML: "Mali", CD: "RD Congo", CG: "Congo",
-};
-
-const COUNTRY_TO_ISO = Object.fromEntries(
-  Object.entries(ISO_COUNTRY).flatMap(([iso, name]) => [
-    [name.toLowerCase(), iso],
-    [name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), iso],
-  ])
-) as Record<string, string>;
 
 const detectSector = (t: string) => {
   const tl = t.toLowerCase();
@@ -98,14 +86,6 @@ const parseDeadline = (s: string) => {
   return new Date(`${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T${hh.padStart(2, "0")}:${mi.padStart(2, "0")}:${ss.padStart(2, "0")}Z`).toISOString();
 };
 
-const normalizeCountryCode = (country: string) => {
-  const raw = (country || "").trim();
-  if (!raw) return "";
-  if (/^[a-z]{2}$/i.test(raw)) return raw.toUpperCase();
-  const key = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  return COUNTRY_TO_ISO[key] || raw.slice(0, 2).toUpperCase();
-};
-
 const norm = (s: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
 const dateKey = (s: string) => (s || "").slice(0, 10);
 const tenderKey = (title: string, deadline: string | null, country: string) => `${norm(title)}|${dateKey(deadline || "")}|${country || ""}`;
@@ -122,7 +102,7 @@ export const AdminTendersManager = () => {
   const [q, setQ] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [report, setReport] = useState<{ inserted: number; updated: number; skipped: number; total: number } | null>(null);
+  const [report, setReport] = useState<{ inserted: number; updated: number; skipped: number; total: number; unique: number } | null>(null);
   const [mode, setMode] = useState<"skip" | "replace" | "wipe">("replace");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -174,14 +154,12 @@ export const AdminTendersManager = () => {
       const CHUNK = 100;
 
       const buildRow = (title: string, dl: string, iso: string) => {
-        const cn = ISO_COUNTRY[iso] || iso;
+        const cn = countryNameFromCode(iso);
         const sector = detectSector(title);
         return {
           notice_title: title.trim(),
           notice_deadline: dl,
           country_code: iso,
-          country: iso,
-          deadline: dl,
           country_name: cn,
           sector,
           summary: `Appel d'offres publié au ${cn} dans le secteur ${sector}. Objet : ${title.slice(0, 140)}.`,
@@ -203,6 +181,7 @@ export const AdminTendersManager = () => {
           const dl = parseDeadline((deadline || "").trim());
           if (!title || !dl) { skipped++; continue; }
           const iso = normalizeCountryCode(country);
+          if (!iso) { skipped++; continue; }
           const key = tenderKey(title, dl, iso);
           if (fileSeen.has(key)) { skipped++; continue; }
           fileSeen.add(key);
@@ -246,7 +225,7 @@ export const AdminTendersManager = () => {
         duplicate_rows: skipped,
       }).eq("id", batch?.id);
 
-      setReport({ inserted, updated, skipped, total: rows.length });
+      setReport({ inserted, updated, skipped, total: rows.length, unique: fileSeen.size });
       toast({
         title: "Import terminé",
         description: `${inserted} ajouté(s) · ${updated} mis à jour · ${skipped} ignoré(s).`,
@@ -257,6 +236,7 @@ export const AdminTendersManager = () => {
       toast({ title: "Erreur d'import", description: e.message, variant: "destructive" });
     } finally {
       setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -348,7 +328,7 @@ export const AdminTendersManager = () => {
                 <Card className="bg-muted/40">
                   <CardContent className="p-4">
                     <p className="font-semibold mb-1">Rapport d'import</p>
-                    <p className="text-sm">✅ {report.inserted} ajoutés · 🔄 {report.updated} mis à jour · ⏭️ {report.skipped} ignorés · 📦 {report.total} lignes traitées</p>
+                    <p className="text-sm">✅ {report.inserted} ajoutés · 🔄 {report.updated} mis à jour · 🎯 {report.unique} appels réels détectés · ⏭️ {report.skipped} ignorés · 📦 {report.total} lignes traitées</p>
                   </CardContent>
                 </Card>
               )}
@@ -372,7 +352,7 @@ export const AdminTendersManager = () => {
                   {filter(active).slice(0, 200).map((t) => (
                     <TableRow key={t.id}>
                       <TableCell className="max-w-md truncate">{t.notice_title}</TableCell>
-                      <TableCell>{t.country_name || t.country_code || t.country}</TableCell>
+                      <TableCell><span className="inline-flex items-center gap-2"><CountryFlag code={t.country_code || t.country} size={14} />{t.country_name || t.country_code || t.country}</span></TableCell>
                       <TableCell><Badge variant="secondary">{t.sector || "—"}</Badge></TableCell>
                       <TableCell className="text-xs">{format(new Date(t.notice_deadline), "dd MMM yy", { locale: fr })}</TableCell>
                       <TableCell>{t.views_count || t.view_count || 0}</TableCell>
@@ -402,7 +382,7 @@ export const AdminTendersManager = () => {
                   {archived.slice(0, 200).map((t) => (
                     <TableRow key={t.id}>
                       <TableCell className="max-w-md truncate">{t.notice_title}</TableCell>
-                      <TableCell>{t.country_name || t.country_code || t.country}</TableCell>
+                      <TableCell><span className="inline-flex items-center gap-2"><CountryFlag code={t.country_code || t.country} size={14} />{t.country_name || t.country_code || t.country}</span></TableCell>
                       <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM yy", { locale: fr }) : "—"}</TableCell>
                       <TableCell>
                         <Button size="sm" variant="ghost" onClick={() => restoreOne(t.id)}><RotateCcw className="h-3.5 w-3.5 mr-1" /> Restaurer</Button>
